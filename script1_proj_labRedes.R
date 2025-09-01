@@ -113,8 +113,6 @@ for(current_stats_dir in stats_dirs){
   )
   
   dea_data_frame <- rbind(dea_data_frame, new_row)
-  
-  # A coluna agora se chama 'vRAM' em vez de 'CPU'.
   desc_row <- data.frame(DMU_ID = dmu_id_base, vRAM = config_cpu, Servidor = servidor, Algoritmo = algoritmo, Escala = escala)
   desc_data_frame <- rbind(desc_data_frame, desc_row)
   
@@ -131,7 +129,6 @@ if(nrow(dea_data_frame) > 0){
   writeData(wb, "Dados_DEA", dea_data_frame)
   
   addWorksheet(wb, "Descricao_Completa")
-  # O nome da coluna no arquivo Excel agora será 'vRAM'.
   colnames(desc_data_frame) <- c("DMU_ID", "vRAM", "Servidor", "Algoritmo", "Escala")
   writeData(wb, "Descricao_Completa", desc_data_frame)
   
