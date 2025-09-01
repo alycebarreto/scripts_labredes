@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Script de Análise de Eficiência (DEA) - Versão com Correção de Erro
+# Script de Análise de Eficiência (DEA)
 # -----------------------------------------------------------------------------
 
 # 1. CARREGANDO OS PACOTES NECESSÁRIOS
@@ -12,8 +12,6 @@ library("openxlsx")
 setwd("C:/Users/Maria Alyce/Desktop/dados_tratados_team1_lab_redes")
 
 # 3. LEITURA DOS DADOS
-# CORREÇÃO: Usando openxlsx::read.xlsx() para evitar conflito com outros pacotes.
-# Esta é a linha que causava o erro.
 data <- openxlsx::read.xlsx("dados.xlsx", sheet = 1, colNames = TRUE)
 
 # 4. ORGANIZAÇÃO DOS DADOS
