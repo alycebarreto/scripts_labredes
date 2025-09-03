@@ -4,7 +4,7 @@
 [![RStudio](https://img.shields.io/badge/RStudio-IDE-blue?logo=rstudio)](https://posit.co/)
 
 ## 1. Introdução
-Este documento resume como utilizar o pipeline de dois scripts em R para processar os dados brutos do projeto e gerar a análise de eficiência.
+Este documento resume como utilizar o pipeline de dois scripts em R para processar os dados brutos do Projeto Final da disciplina de Redes de Computadores e gerar a análise de eficiência.
 
 O processo está dividido em duas etapas principais: Preparação dos Dados e Análise de Eficiência.
 
