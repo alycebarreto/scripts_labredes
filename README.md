@@ -38,23 +38,27 @@ Como usar:
    - Aba Dados_DEA: tabela consolidada com os dados numéricos.
    - Aba Descricao_Completa: tabela de referência que mapeia cada DMU à sua configuração.
 
-## 4. Etapa 2: Análise de Eficiência com DEA
+## 4. Etapa 2: Análise de Eficiência por Escalonamento
 Script: script_DEA.R
 
 Objetivo:
-- Ler a planilha dados.xlsx.
-- Realizar a Análise Envoltória de Dados (DEA).
-- Mostrar os resultados principais.
+Ler a planilha dados.xlsx (gerada na Etapa 1), aplicar a Análise Envoltória de Dados (DEA) e apresentar os resultados. A principal função deste script é realizar a análise separadamente para cada um dos 3 níveis de carga (escalonamentos), em vez de uma única análise global.
 
 Como usar:
-1. Abra o arquivo script_DEA.R no RStudio.
-2. Verifique o diretório de trabalho (setwd) e ajuste para o local onde o arquivo dados.xlsx foi salvo.
-   Exemplo: setwd(file.path("C:", "Users", "Maria Alyce", "Desktop", "DADOS_TRATADOS_TEAM1_LAB_REDES"))
-3. Execute o script inteiro.
-4. Resultados esperados:
-   - Impressão no console da limpeza dos dados (ex.: remoção da DMU64).
-   - Identificação da DMU mais eficiente e da menos eficiente.
-   - Geração de um gráfico da fronteira de eficiência.
+- Abra o arquivo script_DEA.R no RStudio.
+- Verifique o diretório de trabalho (setwd): Ajuste o caminho para o local exato onde o arquivo dados.xlsx foi salvo na etapa anterior.
+      - Exemplo: setwd(file.path("C:", "Users", "Maria Alyce", "Desktop", "DADOS_TRATADOS_TEAM1_LAB_REDES"))
+- Execute o script inteiro.
+  
+Resultados esperados:
+- Impressão no Console:
+    - O console irá mostrar uma análise em loop, uma para cada nível de carga.
+    - Para cada carga, ele identificará a DMU mais eficiente e a menos eficiente dentro daquele cenário específico.
+
+- Geração de Gráficos (Arquivos de Imagem):
+
+    - O script irá gerar e salvar três arquivos de imagem (.png) no seu diretório de trabalho.
+    - Cada imagem conterá o gráfico da fronteira de eficiência para uma das cargas (Carga Baixa, Média e Alta), exatamente como solicitado pelo professor.
 
 ## 5. Conclusão
 Após seguir estas duas etapas, você terá processado os dados brutos e obtido os resultados finais da análise de eficiência, prontos para discussão e apresentação.
