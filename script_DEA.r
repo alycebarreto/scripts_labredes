@@ -1,91 +1,91 @@
-# -----------------------------------------------------------------------------
-# Script de Análise de Eficiência (DEA)
-# -----------------------------------------------------------------------------
+# --- Script de Análise DEA (Data Envelopment Analysis) ---
 
-# 1. CARREGANDO OS PACOTES NECESSÁRIOS
-# Se ainda não os tiver, instale-os com: install.packages(c("Benchmarking", "openxlsx"))
+# 1. Carregando os pacotes necessários
 library("Benchmarking")
 library("openxlsx")
+library("ggplot2")
 
-# 2. DEFININDO O DIRETÓRIO DE TRABALHO
-# O caminho para a sua pasta de trabalho no Windows.
-setwd("C:/Users/Maria Alyce/Desktop/dados_tratados_team1_lab_redes")
+# 2. Definindo o Diretório de Trabalho
+# Garanta que este caminho aponta para a pasta onde o 'dados.xlsx' está salvo.
+setwd(file.path("C:", "Users", "Maria Alyce", "Desktop", "DADOS_TRATADOS_TEAM1_LAB_REDES"))
 
-# 3. LEITURA DOS DADOS
-data <- openxlsx::read.xlsx("dados.xlsx", sheet = 1, colNames = TRUE)
+# 3. Leitura dos Dados
+# ---------------------------------------------------------------------------------
+# 'data_numerico' contém os valores para o cálculo.
+# 'data_descritivo' contém as informações de cada DMU (CPU, Servidor, Escala).
+# ---------------------------------------------------------------------------------
+data_numerico <- openxlsx::read.xlsx(xlsxFile = "dados.xlsx", sheet = "Dados_DEA", colNames = TRUE)
+data_descritivo <- openxlsx::read.xlsx(xlsxFile = "dados.xlsx", sheet = "Descricao_Completa", colNames = TRUE)
 
-# 4. ORGANIZAÇÃO DOS DADOS
-# Extraindo as colunas da planilha para variáveis individuais.
-Names <- as.character(data[["DMUs"]])
-FractalDim <- data[["FractalDim"]]
-TimeTakenForTests <- data[["TimeTakenForTests"]]
-TimePerRequest <- data[["TimePerRequest"]]
-TransferRate <- data[["TransferRate"]]
-Hurst <- data[["Hurst"]]
-RequestsPerSecond <- data[["RequestsPerSecond"]]
 
-# Criando a matriz de dados principal.
-dataMatrix <- cbind(FractalDim, TimeTakenForTests, TimePerRequest, TransferRate, Hurst, RequestsPerSecond)
-rownames(dataMatrix) <- Names # Atribuindo os nomes das DMUs às linhas.
+# 4. Limpeza e Preparação dos Dados
+# Junta as duas tabelas em uma só para facilitar a filtragem.
+# Primeiro, renomeia a coluna de ID na tabela descritiva para ser igual.
+colnames(data_descritivo)[colnames(data_descritivo) == "DMU_ID"] <- "DMUs"
+# Agora, junta as duas tabelas usando a coluna "DMUs" como chave.
+full_data <- merge(data_numerico, data_descritivo, by = "DMUs")
 
-# 5. LIMPEZA DE DADOS
-# Função para remover linhas que contêm valores ausentes (NA).
-delete.na <- function(DF, n = 0) {
-  DF[rowSums(is.na(DF)) <= n, ]
+# Limpeza de NAs (dados faltantes).
+linhas_com_na <- which(rowSums(is.na(full_data)) > 0)
+if (length(linhas_com_na) > 0) {
+  dmus_removidas_na <- full_data[linhas_com_na, "DMUs"]
+  print(paste("Aviso: Removendo as seguintes DMUs por dados faltantes (NA):", paste(dmus_removidas_na, collapse=", ")))
+  full_data <- full_data[-linhas_com_na, ]
 }
-data_dea <- delete.na(dataMatrix)
 
-# Mensagem para o usuário saber quantas DMUs restaram após a limpeza.
-cat("Análise iniciada com", nrow(data_dea), "DMUs após a remoção de dados ausentes.\n\n")
+# Remove linhas com valores zero ou negativos (por segurança).
+# Seleciona apenas as colunas numéricas para esta verificação
+colunas_numericas <- c("FractalDim", "TimeTakenForTests", "TimePerRequest", "TransferRate", "Hurst", "RequestsPerSecond")
+indices_validos <- apply(full_data[, colunas_numericas], 1, function(row) all(row > 0 & is.finite(row)))
+full_data <- full_data[indices_validos, ]
 
-# 6. DEFININDO ENTRADAS (INPUTS) E SAÍDAS (OUTPUTS)
-# Selecionando as colunas pelos nomes para evitar erros.
-inputs <- data_dea[, c("FractalDim", "RequestsPerSecond", "TimeTakenForTests", "TimePerRequest")]
-outputs <- data_dea[, c("TransferRate", "Hurst")]
+print(paste("Análise final será realizada com", nrow(full_data), "DMUs válidas, divididas por escala."))
 
-# 7. EXECUÇÃO DA ANÁLISE DEA
-# Modelo CCR com orientação para entrada (eficiência técnica).
-CCR_I <- dea(inputs, outputs, RTS = "CRS", ORIENTATION = "IN", SLACK = TRUE)
 
-# Modelo CCR com orientação para saída.
-CCR_O <- dea(inputs, outputs, RTS = "CRS", ORIENTATION = "OUT", SLACK = TRUE)
+# 5. Análise DEA por Escalonamento (LOOP)
+# ---------------------------------------------------------------------------------
+# Pega os nomes únicos das escalas (ex: "2000_rq_100_c", "10000_rq_500_c", etc.)
+escalas_unicas <- unique(full_data$Escala)
 
-# Modelo de Super-eficiência para diferenciar as DMUs eficientes (escore > 1).
-SCCR_I <- sdea(inputs, outputs, RTS = "CRS", ORIENTATION = "IN")
+for (escala_atual in escalas_unicas) {
+  
+  cat(paste("\n--- INICIANDO ANÁLISE PARA A ESCALA:", escala_atual, "---\n"))
+  
+  # Filtra os dados para conter apenas as DMUs da escala atual.
+  data_subset <- subset(full_data, Escala == escala_atual)
+  
+  # Prepara a matriz de dados apenas para este subconjunto.
+  rownames(data_subset) <- data_subset$DMUs
+  data_dea <- as.matrix(data_subset[, colunas_numericas])
+  
+  # Define inputs e outputs.
+  inputs  <- data_dea[,c("FractalDim", "RequestsPerSecond", "TimeTakenForTests", "TimePerRequest")]
+  outputs <- data_dea[,c("TransferRate", "Hurst")]
+  
+  # Roda o modelo de super-eficiência para a escala atual.
+  SCCR_I <- sdea(inputs, outputs, RTS="CRS", ORIENTATION="in")
+  
+  # Encontra a melhor e a pior DMU DENTRO desta escala.
+  bestDMU_index <- which.max(SCCR_I$eff)
+  badDMU_index  <- which.min(SCCR_I$eff)
+  bestDMU_name <- rownames(data_dea)[bestDMU_index]
+  badDMU_name  <- rownames(data_dea)[badDMU_index]
+  
+  # Imprime os resultados para esta escala.
+  print(paste("DMU mais eficiente para esta escala:", bestDMU_name, "com eficiência de", round(SCCR_I$eff[bestDMU_index], 4)))
+  print(paste("DMU menos eficiente para esta escala:", badDMU_name, "com eficiência de", round(SCCR_I$eff[badDMU_index], 4)))
+  
+  # Gera e SALVA o gráfico da fronteira de eficiência para esta escala.
+  # O nome do arquivo será, por exemplo, "Fronteira_de_Eficiencia_2000_rq_100_c.png"
+  nome_arquivo_grafico <- paste0("Fronteira_de_Eficiencia_", escala_atual, ".png")
+  png(nome_arquivo_grafico, width=800, height=600) # Prepara o arquivo PNG para salvar
+  
+  # Cria o gráfico
+  dea.plot(inputs, outputs, RTS="crs", ORIENTATION="in", main=paste("Fronteira de Eficiência - Carga:", escala_atual))
+  
+  dev.off() # Fecha e salva o arquivo de imagem.
+  
+  print(paste("Gráfico salvo como:", nome_arquivo_grafico))
+}
 
-# 8. APRESENTAÇÃO DOS RESULTADOS
-# Encontrando o índice (a posição) da melhor e da pior DMU.
-bestDMU_index <- which.max(SCCR_I$eff)
-badDMU_index <- which.min(SCCR_I$eff)
-
-# Usando o índice para obter o NOME da DMU e seu escore de eficiência.
-bestDMU_name <- rownames(data_dea)[bestDMU_index]
-badDMU_name <- rownames(data_dea)[badDMU_index]
-
-bestDMU_score <- SCCR_I$eff[bestDMU_index]
-badDMU_score <- SCCR_I$eff[badDMU_index]
-
-# Imprimindo os resultados de forma clara.
-print("--- RESULTADOS DA ANÁLISE DEA ---")
-print(paste("A DMU mais eficiente é:", bestDMU_name, "com um escore de", round(bestDMU_score, 4)))
-print(paste("A DMU menos eficiente é:", badDMU_name, "com um escore de", round(badDMU_score, 4)))
-print("-----------------------------------")
-
-# 9. VISUALIZAÇÃO E EXPORTAÇÃO
-# Gera um gráfico da fronteira de eficiência.
-dea.plot(inputs, outputs, RTS = "crs", ORIENTATION = "in")
-
-# Para exportar os resultados para um arquivo Excel:
-# 1. Cria um data.frame com os nomes e os escores de eficiência.
-resultados_df <- data.frame(
-  DMU = rownames(data_dea),
-  Eficiencia = SCCR_I$eff
-)
-# 2. Ordena do mais eficiente para o menos eficiente.
-resultados_df <- resultados_df[order(resultados_df$Eficiencia, decreasing = TRUE), ]
-
-# 3. Escreve para um arquivo .xlsx no mesmo diretório.
-# Remova o '#' da linha abaixo para executar a exportação.
-# write.xlsx(resultados_df, file = 'resultados_eficiencia.xlsx', rowNames = FALSE)
-
-cat("\nScript finalizado. Para salvar os resultados, remova o '#' da última linha do código.\n")
+cat("\n--- ANÁLISE COMPLETA --- \n")
