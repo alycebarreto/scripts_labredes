@@ -67,4 +67,4 @@ Após seguir estas duas etapas, você terá processado os dados brutos e obtido 
 Este guia foi desenvolvido por:
 - Maria Alyce Barreto
 - João Victor Batista
-- João Paulo
+- João Paulo Oliveira
